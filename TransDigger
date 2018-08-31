@@ -1,0 +1,41 @@
+#!/bin/bash
+
+mkdir -p ./tmp.TransDigger && cd ./tmp.TransDigger 
+
+#####################
+### RepeatModeler ###
+#####################
+
+# TODO: run RepeatModeler
+
+#########################
+### LTRharvest/digest ###
+#########################
+
+# TODO: run LTRharvest/digest
+awk 'BEGIN{FS=OFS="\t"} {if($1~/^>/){if($1~/rnd\-/){if($1~/DNA|LINE|LTR|SINE/){k=1;split($1,a,"#");print a[1]}else{k=0}}else{if($1!~/rRNA|tRNA|snRNA|Simple/){print $1;k=1}else{k=0}}}else{if(k==1){print $1}}}' ${PREFIX}.repbase.RepeatModeler.fa
+
+#####################
+### TransposonPSI ###
+#####################
+
+mkdir Database_TransposonPSI && cd Database_TransposonPSI
+# TODO: run TransposoPSI
+awk 'BEGIN{FS=OFS="\t"} {if(($5-$4+1)>=50){k++;print $1,$4-1,$5,"TransposonPSI."k,0,$7}}' ${GENOME}.TPSI.allHits.chains.gff3 > ${GENOME}.TPSI.allHits.chains.bed
+bedtools getfasta -fi /data/tusers/yutianx/tongji2/GitHuB/piSet/annotation/phaCin/phaCin.fa -fo phaCin.fa.TPSI.allHits.chains.bestPerLocus.fa -bed phaCin.fa.TPSI.allHits.chains.bestPerLocus.bed -s -name
+cd ..
+
+##############
+### uclust ###
+##############
+
+mkdir Database_merged && cat Database_LTRharvest/phaCin-ltrs.fa Database_RepeatModeler/koala.repbase.denovo.fa Database_TransposonPSI/phaCin.fa.TPSI.allHits.chains.bestPerLocus.fa > Database_merged/merged.fa && cd Database_merged
+awk '{if($1~/^>/){print $0}else{print toupper($1)}}' merged.fa > t && mv t merged.fa
+usearch11.0.667_i86linux32 -sortbylength merged.fa -fastaout merged.sorted.fa --log usearch.sort.log
+usearch11.0.667_i86linux32 -cluster_fast merged.sorted.fa --id 0.75 --centroids my_centroids.fa --uc result.uc -consout final.nr.consensus.fa -msaout aligned.fasta --log usearch.clust.log
+
+
+
+
+
+
